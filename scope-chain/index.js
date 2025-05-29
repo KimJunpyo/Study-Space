@@ -9,21 +9,46 @@ runButton.addEventListener("click", () => {
     sourceType: "module",
   });
 
-  console.log(getScopeChain([], ast), ast);
+  console.log(ast);
+  const path = [];
+
+  const scopeChainList = getScopeChain(ast, path);
+  console.log(scopeChainList);
 });
 
-function getScopeChain(scopeChain, ast) {
-  if (ast.type === "VariableDeclaration") {
-    scopeChain.push(ast.declarations[0].id.name);
-  }
+function getScopeChain(ast, currentPath) {
+  const result = [];
   if (ast.type === "Program") {
-    scopeChain.push("Global");
-    return scopeChain;
-  }
-  if (ast.body.length !== 0) {
-    ast.body.forEach((body) => {
-      getScopeChain(scopeChain, body);
+    currentPath.push("Global");
+    result.push({
+      scopeChain: currentPath.join(","),
+      name: "Global",
+      type: "global",
     });
   }
-  return scopeChain;
+  if (ast.type === "VariableDeclaration") {
+    result.push({
+      scopeChain: currentPath.join("-"),
+      name: ast.declarations[0].id.name,
+      type: "variable",
+    });
+  }
+  if (ast.type === "FunctionDeclaration") {
+    result.push({
+      scopeChain: currentPath.join(","),
+      name: ast.id.name,
+      type: "function",
+    });
+    const scopeChain = getScopeChain(ast.body, [...currentPath, ast.id.name]);
+    result.push(...scopeChain);
+  }
+
+  if (ast.body && ast.body.length > 0) {
+    ast.body.forEach((body) => {
+      const scopeChain = getScopeChain(body, currentPath);
+      result.push(...scopeChain);
+    });
+  }
+
+  return result;
 }
